@@ -43,6 +43,9 @@ python canvas_tokens.py canvas.myschool.edu --save
 # Save tokens to a specific file
 python canvas_tokens.py canvas.myschool.edu --save path/to/my.env
 
+# Verify tokens immediately with a test API call
+python canvas_tokens.py canvas.myschool.edu --verify
+
 # Dump all cookies (if your instance uses a non-standard session cookie name)
 python canvas_tokens.py canvas.myschool.edu --all-cookies
 ```
@@ -115,4 +118,5 @@ pip install python-dotenv
 - **Token lifetime:** Session tokens expire when the server-side session ends (typically after a period of inactivity or on logout). Re-run the script when they stop working.
 - **CSRF token:** Captured from the page `<meta name="csrf-token">` tag. Required for any mutating API requests (POST/PUT/DELETE). Read-only GET requests may not need it.
 - **`--save` merges, not overwrites:** If a `.env` file already exists, only the three Canvas keys are updated — any other variables in the file are preserved.
+- **`--verify`:** Makes a `GET /api/v1/users/self` call after extraction and prints your name and user ID if the tokens are valid. Useful for confirming everything worked, especially on first run.
 - **`--all-cookies`:** If your Canvas instance uses a different session cookie name, this flag dumps every cookie so you can find the right one.

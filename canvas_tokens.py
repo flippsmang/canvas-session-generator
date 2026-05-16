@@ -10,8 +10,9 @@ or any other HTTP client.
 
 import argparse
 import json
-import os
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -170,6 +171,24 @@ def save_env_file(tokens: dict, path: Path) -> None:
     print("Load in Python with: from dotenv import load_dotenv; load_dotenv()")
 
 
+def verify_tokens(base_url: str, session: str, csrf: str) -> None:
+    url = f"{base_url}/api/v1/users/self"
+    req = urllib.request.Request(url, headers={
+        "Cookie": f"canvas_session={session}",
+        "X-CSRF-Token": csrf,
+    })
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read())
+            name = data.get("name", "(unknown)")
+            uid = data.get("id", "?")
+            print(f"\nVerified! Authenticated as: {name} (id: {uid})")
+    except urllib.error.HTTPError as e:
+        print(f"\nVerification failed: HTTP {e.code} — tokens may be invalid or expired")
+    except Exception as e:
+        print(f"\nVerification failed: {e}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Extract Canvas session and CSRF tokens by logging in via a browser.",
@@ -211,6 +230,11 @@ def main() -> None:
         metavar="FILE",
         help="Save tokens to a .env file (default: .env in current directory)",
     )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Test the extracted tokens with a GET /api/v1/users/self call after login",
+    )
 
     args = parser.parse_args()
 
@@ -223,6 +247,14 @@ def main() -> None:
 
     if args.save:
         save_env_file(tokens, Path(args.save))
+
+    if args.verify:
+        session = tokens["canvas_session"]
+        csrf = tokens["csrf_token_meta"] or tokens["csrf_token_cookie"]
+        if session and csrf:
+            verify_tokens(tokens["base_url"], session, csrf)
+        else:
+            print("\nCannot verify: session or CSRF token was not found.")
 
 
 if __name__ == "__main__":
